@@ -107,9 +107,11 @@ class MainWindow(QMainWindow):
         self.a_redo = self.controller.undo_stack.createRedoAction(self, "Повторить")
         self.a_redo.setShortcuts([QKeySequence.StandardKey.Redo, QKeySequence("Ctrl+Y")])
         self.a_redo.setData("redo")
-        self.a_cut = a("Вырезать", lambda: self.scene.copy_selection(cut=True), QKeySequence.StandardKey.Cut)
-        self.a_copy = a("Копировать", lambda: self.scene.copy_selection(), QKeySequence.StandardKey.Copy)
+        self.a_cut = a("Вырезать", lambda: self.copy(cut=True), QKeySequence.StandardKey.Cut)
+        self.a_copy = a("Копировать", lambda: self.copy(), QKeySequence.StandardKey.Copy, None,
+                        "Копировать регионы (в другие программы — как изображение)")
         self.a_paste = a("Вставить", self.paste, QKeySequence.StandardKey.Paste)
+        self.a_duplicate = a("Дублировать", self.duplicate, "Ctrl+D", None, "Дублировать выделенные регионы")
         self.a_delete = a("Удалить", self.delete_selected, None, "delete", "Удалить выделенные регионы")
         self.a_select_all = a("Выделить всё", self.select_all, QKeySequence.StandardKey.SelectAll)
         self.a_math = a("Формула", lambda: self.insert_region("math"), "Ctrl+M", "math", "Математический регион")
@@ -149,7 +151,7 @@ class MainWindow(QMainWindow):
         m = mb.addMenu("Правка")
         m.addActions([self.a_undo, self.a_redo])
         m.addSeparator()
-        m.addActions([self.a_cut, self.a_copy, self.a_paste, self.a_delete, self.a_select_all])
+        m.addActions([self.a_cut, self.a_copy, self.a_paste, self.a_duplicate, self.a_delete, self.a_select_all])
         m.addSeparator()
         m.addActions([self.a_separate, self.a_align_left, self.a_align_top])
         m = mb.addMenu("Вставка")
@@ -252,6 +254,8 @@ class MainWindow(QMainWindow):
         self.scene.edit_plot_requested.connect(self.edit_plot)
         self.scene.edit_image_requested.connect(self.edit_image)
         self.scene.status.connect(self.status_msg.setText)
+        self.scene.context_menu_requested.connect(self.show_context_menu)
+        self.scene.ensure_visible.connect(lambda rect: self.view.ensureVisible(rect, 40, 40))
         self.view.zoom_changed.connect(self._on_zoom)
         self.view.files_dropped.connect(self._on_files_dropped)
 
@@ -484,10 +488,55 @@ class MainWindow(QMainWindow):
         return ImageRegion(x=pos.x(), y=pos.y(), data=data, mime="image/png", width=image.width() * scale,
                            height=image.height() * scale)
 
-    def paste(self) -> None:
+    def _active_editor(self):
         item = self.scene.editing_item()
-        if item is not None and getattr(item, "editor", None) is not None:
-            item.editor.paste()
+        return getattr(item, "editor", None) if item is not None else None
+
+    def copy(self, cut: bool = False) -> None:
+        editor = self._active_editor()
+        if editor is not None:
+            editor.cut() if cut else editor.copy()
+            return
+        if self.scene.copy_selection(cut=cut):
+            n = len(self.scene.selected_regions()) if not cut else 0
+            self.status_msg.setText("Вырезано" if cut else f"Скопировано регионов: {n} (также как изображение)")
+
+    def duplicate(self) -> None:
+        editor = self._active_editor()
+        if editor is not None:  # Ctrl+D inside the editor duplicates the current line
+            cursor = editor.textCursor()
+            if cursor.hasSelection():
+                text = cursor.selectedText().replace(" ", "\n")
+                cursor.setPosition(cursor.selectionEnd())
+                cursor.insertText(text)
+            else:
+                line = cursor.block().text()
+                cursor.movePosition(cursor.MoveOperation.EndOfBlock)
+                cursor.insertText("\n" + line)
+            editor.setTextCursor(cursor)
+            return
+        if not self.scene.duplicate_selection():
+            self.status_msg.setText("Выделите регионы для дублирования")
+
+    def show_context_menu(self, screen_pos) -> None:
+        menu = QMenu(self)
+        has_selection = bool(self.scene.selected_regions())
+        for act in (self.a_cut, self.a_copy, self.a_duplicate, self.a_delete):
+            act.setEnabled(has_selection)
+            menu.addAction(act)
+        menu.addAction(self.a_paste)
+        menu.addSeparator()
+        menu.addActions([self.a_math, self.a_text, self.a_plot, self.a_image])
+        menu.addSeparator()
+        menu.addAction(self.a_separate)
+        menu.exec(screen_pos)
+        for act in (self.a_cut, self.a_copy, self.a_duplicate, self.a_delete):
+            act.setEnabled(True)
+
+    def paste(self) -> None:
+        editor = self._active_editor()
+        if editor is not None:
+            editor.paste()
             return
         mime = QApplication.clipboard().mimeData()
         if not self.scene.paste() and mime.hasImage():

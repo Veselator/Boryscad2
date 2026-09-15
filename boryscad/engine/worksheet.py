@@ -155,6 +155,11 @@ class PlotRegionEvaluator:
                         data.errors.append(f"{attr}: expected a range like 0..10")
                 except (ParseError, EvalError) as exc:
                     data.errors.append(f"{attr}: {exc}")
+        try:
+            from ..library.autorange import resolve_plot
+            resolve_plot(data)
+        except Exception as exc:  # automatic bounds must never break a plot
+            data.errors.append(f"auto range: {exc}")
         result.plot = data
         if data.errors:
             result.error = "; ".join(data.errors)

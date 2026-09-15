@@ -131,6 +131,7 @@ BUILTIN_MODULES = (
     "boryscad.library.symbolic",
     "boryscad.library.solving",
     "boryscad.library.plotting",
+    "boryscad.library.autorange",
     "boryscad.library.optimization",
     "boryscad.library.transport",
     "boryscad.library.graphs",

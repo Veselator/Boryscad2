@@ -254,8 +254,15 @@ def render_figure(region: PlotRegion, data: P.PlotData, theme: Theme, width: flo
         if region.equal:
             ax.set_aspect("equal", adjustable="datalim" if not (data.xlim and data.ylim) else "box")
         if not any(s.series_kind == "graph" for s in data.series):
-            ax.axhline(0, color=grid, lw=0.9, zorder=0)
-            ax.axvline(0, color=grid, lw=0.9, zorder=0)
+            # zero axes only when they are inside the data area; they must not stretch the autoscaled limits
+            x0, x1 = ax.get_xlim()
+            y0, y1 = ax.get_ylim()
+            if y0 <= 0 <= y1:
+                ax.axhline(0, color=grid, lw=0.9, zorder=0)
+            if x0 <= 0 <= x1:
+                ax.axvline(0, color=grid, lw=0.9, zorder=0)
+            ax.set_xlim(x0, x1)
+            ax.set_ylim(y0, y1)
     if region.grid and not any(s.series_kind == "graph" for s in data.series):
         ax.grid(True, color=grid, lw=0.6, alpha=0.9)
     if region.legend and ctx.has_labels:

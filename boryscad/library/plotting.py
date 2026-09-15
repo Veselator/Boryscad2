@@ -200,10 +200,19 @@ def _grid(ctx, args, n):
     return xname, yname, X, Y
 
 
+def _real_only(values: np.ndarray) -> np.ndarray:
+    """Complex results are outside the real domain of the function: they are not plotted."""
+    if np.iscomplexobj(values):
+        with np.errstate(invalid="ignore"):
+            return np.where(np.abs(values.imag) > 1e-12, np.nan, values.real).astype(float)
+    if values.dtype == object:
+        return np.array([complex(v).real if abs(complex(v).imag) <= 1e-12 else np.nan for v in values.reshape(-1)]).reshape(values.shape)
+    return values.astype(float)
+
+
 def _eval_grid(ctx, node, xname, yname, X, Y):
     try:
-        Z = ctx.eval_vectorized(node, {xname: X, yname: Y})
-        Z = np.asarray(Z, dtype=float)
+        Z = _real_only(np.asarray(ctx.eval_vectorized(node, {xname: X, yname: Y})))
         if Z.shape == X.shape:
             return Z
         if Z.size == 1:
@@ -212,16 +221,17 @@ def _eval_grid(ctx, node, xname, yname, X, Y):
         pass
     Z = np.empty(X.shape)
     for idx in np.ndindex(X.shape):
-        v = ctx.eval(node, {xname: float(X[idx]), yname: float(Y[idx])})
-        v = normalize_number(v)
-        Z[idx] = float(v.real) if isinstance(v, complex) else float(v)
+        try:
+            v = normalize_number(ctx.eval(node, {xname: float(X[idx]), yname: float(Y[idx])}))
+            Z[idx] = (np.nan if abs(v.imag) > 1e-12 else v.real) if isinstance(v, complex) else float(v)
+        except (EvalError, TypeError, ValueError):
+            Z[idx] = np.nan
     return Z
 
 
 def _eval_curve(ctx, node, name, xs):
     try:
-        ys = ctx.eval_vectorized(node, {name: xs})
-        ys = np.asarray(ys)
+        ys = _real_only(np.asarray(ctx.eval_vectorized(node, {name: xs})))
         if ys.shape == xs.shape:
             return np.real(ys).astype(float)
         if ys.size == 1:
@@ -232,7 +242,7 @@ def _eval_curve(ctx, node, name, xs):
     for i, x in enumerate(xs):
         try:
             v = normalize_number(ctx.eval(node, {name: float(x)}))
-            out[i] = float(v.real) if isinstance(v, complex) else float(v)
+            out[i] = (np.nan if abs(v.imag) > 1e-12 else v.real) if isinstance(v, complex) else float(v)
         except EvalError:
             out[i] = np.nan
     return out

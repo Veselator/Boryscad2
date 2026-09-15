@@ -33,9 +33,11 @@ class PlotDialog(QDialog):
         self.ylabel = QLineEdit(region.ylabel)
         self.zlabel = QLineEdit(region.zlabel)
         self.xlim = QLineEdit(region.xlim)
-        self.xlim.setPlaceholderText("авто, например 0..10")
+        self.xlim.setPlaceholderText("пусто — авто (или 0..10)")
+        self.xlim.setToolTip("Оставьте пустым: границы определятся автоматически по данным, корням, экстремумам и области определения")
         self.ylim = QLineEdit(region.ylim)
-        self.ylim.setPlaceholderText("авто")
+        self.ylim.setPlaceholderText("пусто — авто")
+        self.ylim.setToolTip("Оставьте пустым: диапазон y подбирается автоматически, полюса (tan, 1/x) обрезаются")
         self.mode = QComboBox()
         self.mode.addItems(["2d", "3d", "polar"])
         self.mode.setCurrentText(region.mode)
@@ -92,8 +94,9 @@ class PlotDialog(QDialog):
         mono.setPointSize(10)
         self.series.setFont(mono)
         layout.addWidget(self.series, 1)
-        hint = QLabel("fplot(sin(x), x, 0, 10, label=\"sin\") · line(x, y) · scatter(x, y) · contour(f(x,y), x, a, b, y, c, d)"
-                      " · implicit(eq, x, a, b, y, c, d) · region(cond, …) · surface(…) · graph(E, path=p) · lp_graph(c, A, b)")
+        hint = QLabel("fplot(sin(x), x) · fplot(sin(x), x, 0, 10, label=\"sin\") · line(x, y) · scatter(x, y) · "
+                      "contour(f(x, y), x, y) · implicit(x^2 + y^2 == 9, x, y) · region(x + y <= 5, x, y) · surface(f(x, y), x, y) · "
+                      "graph(E, path=p) · lp_graph(c, A, b).  Диапазоны можно не указывать — они подберутся автоматически.")
         hint.setWordWrap(True)
         hint.setObjectName("Muted")
         layout.addWidget(hint)

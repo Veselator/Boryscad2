@@ -5,7 +5,7 @@ import json
 from typing import Optional
 
 from PySide6.QtCore import QMimeData, QPointF, QRectF, Qt, QTimer, Signal
-from PySide6.QtGui import QColor, QCursor, QKeyEvent, QKeySequence, QPainter, QPainterPath, QPen, QTransform
+from PySide6.QtGui import QColor, QCursor, QImage, QKeyEvent, QKeySequence, QPainter, QPainterPath, QPen, QTransform
 from PySide6.QtWidgets import (QApplication, QGraphicsItem, QGraphicsObject, QGraphicsProxyWidget, QGraphicsScene,
                                QGraphicsSceneMouseEvent, QGraphicsView, QStyleOptionGraphicsItem)
 
@@ -377,6 +377,8 @@ class WorksheetScene(QGraphicsScene):
     edit_plot_requested = Signal(str)
     edit_image_requested = Signal(str)
     status = Signal(str)
+    ensure_visible = Signal(QRectF)
+    context_menu_requested = Signal(object)
 
     def __init__(self, controller: DocumentController, ctx: RenderContext, parent=None):
         super().__init__(parent)
@@ -635,6 +637,23 @@ class WorksheetScene(QGraphicsScene):
                                  "to create a math region, type \" for text")
         super().mousePressEvent(event)
 
+    def contextMenuEvent(self, event) -> None:
+        item = self.itemAt(event.scenePos(), QTransform())
+        while item is not None and not isinstance(item, RegionItem):
+            item = item.parentItem()
+        if isinstance(item, RegionItem) and item.is_editing():
+            super().contextMenuEvent(event)
+            return
+        if isinstance(item, RegionItem) and not item.isSelected():
+            self.clearSelection()
+            item.setSelected(True)
+        if item is None:
+            p = event.scenePos()
+            self.cursor.setPos(self._snap(max(0, p.x())), self._snap(max(0, p.y())))
+            self.cursor.show()
+        self.context_menu_requested.emit(event.screenPos())
+        event.accept()
+
     def keyPressEvent(self, event: QKeyEvent) -> None:
         editing = self.editing_item()
         if editing is not None:
@@ -671,44 +690,141 @@ class WorksheetScene(QGraphicsScene):
         super().keyPressEvent(event)
 
     # ------------------------------------------------------- clipboard
-    def copy_selection(self, cut: bool = False) -> None:
-        regions = [i.region for i in self.selectedItems() if isinstance(i, RegionItem)]
+    def selected_regions(self) -> list[Region]:
+        items = [i for i in self.selectedItems() if isinstance(i, RegionItem)]
+        items.sort(key=lambda i: (i.pos().y(), i.pos().x()))
+        return [i.region for i in items]
+
+    def _selection_rect(self, regions: list[Region]) -> QRectF:
+        rect = QRectF()
+        for r in regions:
+            item = self.items_by_id.get(r.id)
+            if item is not None:
+                w, h = item.content_size()
+                rect = rect.united(QRectF(item.pos().x(), item.pos().y(), w, h))
+        return rect
+
+    def selection_image(self, regions: list[Region], scale: float = 2.0) -> QImage:
+        """Picture of the selected regions (pasted into Word, Telegram, …)."""
+        rect = self._selection_rect(regions).adjusted(-10, -10, 10, 10)
+        image = QImage(max(1, int(rect.width() * scale)), max(1, int(rect.height() * scale)),
+                       QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(qcolor(self.ctx.theme.color("page")))
+        painter = QPainter(image)
+        painter.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing
+                               | QPainter.RenderHint.SmoothPixmapTransform)
+        painter.scale(scale, scale)
+        for r in regions:
+            item = self.items_by_id.get(r.id)
+            if item is not None and item.layout is not None:
+                item.layout.paint(painter, item.pos().x() - rect.left(), item.pos().y() - rect.top())
+        painter.end()
+        return image
+
+    def copy_selection(self, cut: bool = False) -> bool:
+        regions = self.selected_regions()
         if not regions:
-            return
+            return False
         mime = QMimeData()
         mime.setData(MIME, json.dumps([r.to_dict() for r in regions]).encode("utf-8"))
-        mime.setText("\n\n".join(getattr(r, "source", getattr(r, "text", "")) for r in regions))
+        mime.setText("\n\n".join(getattr(r, "source", None) or getattr(r, "text", "") for r in regions))
+        try:
+            mime.setImageData(self.selection_image(regions))
+        except Exception:
+            pass
         QApplication.clipboard().setMimeData(mime)
+        self._paste_count = 0
         if cut:
             self.controller.remove_regions([r.id for r in regions])
+        return True
+
+    def _insert_copies(self, data: list[dict], origin: QPointF, text: str) -> list[str]:
+        min_x = min(d["x"] for d in data)
+        min_y = min(d["y"] for d in data)
+        new = []
+        for d in data:
+            d = dict(d)
+            d.pop("id", None)
+            d["x"] = self._snap(max(0.0, origin.x() + d["x"] - min_x))
+            d["y"] = self._snap(max(0.0, origin.y() + d["y"] - min_y))
+            new.append(RegionFactory.create(d))
+        self.controller.apply(text, lambda doc: doc.regions.extend(new))
+        self.sync()
+        self.clearSelection()
+        for r in new:
+            item = self.items_by_id.get(r.id)
+            if item is not None:
+                item.setSelected(True)
+        if new:
+            self.ensure_visible.emit(self._selection_rect(new))
+        return [r.id for r in new]
 
     def paste(self) -> bool:
         mime = QApplication.clipboard().mimeData()
-        pos = self.cursor_pos()
         if mime.hasFormat(MIME):
             data = json.loads(bytes(mime.data(MIME)).decode("utf-8"))
             if not data:
                 return False
-            min_x = min(d["x"] for d in data)
-            min_y = min(d["y"] for d in data)
-            new = []
-            for d in data:
-                d = dict(d)
-                d.pop("id", None)
-                d["x"] = pos.x() + d["x"] - min_x
-                d["y"] = pos.y() + d["y"] - min_y
-                new.append(RegionFactory.create(d))
-            self.controller.apply("Paste", lambda doc: doc.regions.extend(new))
-            self.sync()
+            stack = self.controller.undo_stack
+            if self.cursor.isVisible():
+                # at the red insertion cursor, like Mathcad
+                origin = self.cursor.pos()
+                self.hide_cursor()
+                self._insert_copies(data, origin, "Paste")
+                return True
+            # no cursor: below the previous paste (or below the copied regions), making room if needed
+            last = getattr(self, "_last_paste_rect", None)
+            ids = [d.get("id") for d in data]
+            source_rect = self._selection_rect([r for r in self.controller.document.regions if r.id in ids])
+            anchor = last if (last is not None and getattr(self, "_paste_count", 0) > 0) else source_rect
+            if anchor is None or anchor.isNull():
+                origin = self.cursor_pos()
+            else:
+                origin = QPointF(min(d["x"] for d in data), anchor.bottom() + 16)
+            stack.beginMacro("Paste")
+            try:
+                new_ids = self._insert_copies(data, origin, "Paste")
+                self.separate_regions()
+            finally:
+                stack.endMacro()
+            self._paste_count = getattr(self, "_paste_count", 0) + 1
+            new_regions = [r for r in self.controller.document.regions if r.id in set(new_ids)]
+            self._last_paste_rect = self._selection_rect(new_regions)
+            for rid in new_ids:
+                item = self.items_by_id.get(rid)
+                if item is not None:
+                    item.setSelected(True)
             return True
         if mime.hasImage():
             return False  # handled by the main window (needs image encoding)
         if mime.hasText() and mime.text().strip():
+            pos = self.cursor_pos()
+            self.hide_cursor()
             self.controller.add_region(MathRegion(x=self._snap(pos.x()), y=self._snap(pos.y()), source=mime.text().strip()),
                                        "Paste")
             self.sync()
             return True
         return False
+
+    def duplicate_selection(self) -> bool:
+        regions = self.selected_regions()
+        if not regions:
+            return False
+        rect = self._selection_rect(regions)
+        data = [r.to_dict() for r in regions]
+        # place the copy directly below the selection; one undo step for insert + making room
+        stack = self.controller.undo_stack
+        stack.beginMacro("Duplicate")
+        try:
+            new_ids = self._insert_copies(data, QPointF(rect.left(), rect.bottom() + 16), "Duplicate")
+            self.separate_regions()
+        finally:
+            stack.endMacro()
+        for rid in new_ids:
+            item = self.items_by_id.get(rid)
+            if item is not None:
+                item.setSelected(True)
+        return True
 
 
 class WorksheetView(QGraphicsView):
@@ -719,7 +835,7 @@ class WorksheetView(QGraphicsView):
         super().__init__(scene, parent)
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.TextAntialiasing
                             | QPainter.RenderHint.SmoothPixmapTransform)
-        self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.SmartViewportUpdate)
+        self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.FullViewportUpdate)
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)

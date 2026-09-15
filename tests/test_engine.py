@@ -125,3 +125,32 @@ def test_lab9_allocation():
     ev, _ = run("F := [9, 18, 24, 38, 50; 11, 19, 30, 44, 59; 16, 32, 40, 57, 70; 13, 27, 44, 69, 73]\n"
                 "allocate(F, unit=20).F =\nallocate_graph(F, unit=20).F =")
     assert ev[0].value == ev[1].value == 85
+
+
+# ------------------------------------------------------------ automatic plot bounds
+def _plot(series, **fields):
+    from boryscad.core.document import Document, PlotRegion
+    region = PlotRegion(series=series, **fields)
+    doc = Document(regions=[region])
+    return engine.run(doc).regions[region.id].plot
+
+
+def test_autorange_fplot_features():
+    data = _plot(["fplot((x - 50)^2 - 100, x)"])
+    x = data.series[0].x
+    assert 30 < x.min() < 40 and 60 < x.max() < 70
+
+
+def test_autorange_respects_domain_and_limits():
+    data = _plot(["fplot(ln(x), x)"])
+    assert data.series[0].x.min() >= 0
+    data = _plot(["fplot(sin(x), x)"], xlim="0..3")
+    assert data.series[0].x.min() == 0 and data.series[0].x.max() == 3
+
+
+def test_autorange_sets_and_poles():
+    data = _plot(["implicit(u^2 + v^2 == 9, u, v)"])
+    X = data.series[0].X
+    assert -4.5 < X.min() < -3 and 3 < X.max() < 4.5
+    data = _plot(["fplot(tan(x), x)"])
+    assert data.ylim is not None and data.ylim[1] < 1000

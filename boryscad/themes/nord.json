@@ -1,0 +1,18 @@
+{
+  "name": "Nord",
+  "dark": true,
+  "colors": {
+    "window": "#242933", "sidebar": "#2b303b", "surface": "#2e3440", "surface_alt": "#3b4252",
+    "border": "#434c5e", "text": "#eceff4", "text_muted": "#a3adc2", "accent": "#88c0d0", "accent_text": "#2e3440",
+    "page": "#2e3440", "page_grid": "#3b4252", "page_shadow": "#00000055", "desk": "#20242c",
+    "selection": "#88c0d033", "hover": "#ffffff0d", "cursor": "#bf616a",
+    "math_text": "#eceff4", "math_variable": "#eceff4", "math_number": "#ebcb8b", "math_operator": "#81a1c1",
+    "math_function": "#88c0d0", "math_keyword": "#b48ead", "math_string": "#a3be8c", "math_result": "#a3be8c",
+    "math_result_bg": "#a3be8c14", "math_error": "#bf616a", "math_constraint": "#d08770", "math_symbolic": "#8fbcbb",
+    "text_body": "#e5e9f0", "heading": "#eceff4", "table_header": "#3b4252", "table_border": "#4c566a",
+    "table_highlight": "#88c0d040", "plot_bg": "#2e3440", "plot_fg": "#e5e9f0", "plot_grid": "#434c5e"
+  },
+  "fonts": {"ui": "Segoe UI", "ui_size": 10, "math": "Cambria Math", "math_size": 17, "text": "Segoe UI", "text_size": 11, "mono": "Cascadia Mono", "mono_size": 11},
+  "plot_cycle": ["#88c0d0", "#bf616a", "#a3be8c", "#ebcb8b", "#b48ead", "#d08770", "#5e81ac", "#8fbcbb"],
+  "radius": 6
+}

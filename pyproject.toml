@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "boryscad"
+version = "2.0.0"
+description = "Boryscad — a modern Mathcad-like math worksheet with an operations-research toolkit"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "PySide6>=6.6",
+    "lark>=1.1",
+    "sympy>=1.12",
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "matplotlib>=3.8",
+    "networkx>=3.2",
+]
+
+[project.scripts]
+boryscad = "boryscad.cli:main"
+
+[project.gui-scripts]
+boryscad-gui = "boryscad.cli:gui_main"
+
+[tool.setuptools.packages.find]
+include = ["boryscad*"]
+
+[tool.setuptools.package-data]
+boryscad = ["language/*.lark", "themes/*.json", "examples/*.bmath"]

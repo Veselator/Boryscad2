@@ -1,0 +1,18 @@
+{
+  "name": "Solarized Light",
+  "dark": false,
+  "colors": {
+    "window": "#eee8d5", "sidebar": "#e7e0c9", "surface": "#fdf6e3", "surface_alt": "#f5eed8",
+    "border": "#d6ceb5", "text": "#073642", "text_muted": "#657b83", "accent": "#268bd2", "accent_text": "#fdf6e3",
+    "page": "#fdf6e3", "page_grid": "#eee8d5", "page_shadow": "#586e7530", "desk": "#e4ddc6",
+    "selection": "#268bd233", "hover": "#0736420d", "cursor": "#dc322f",
+    "math_text": "#073642", "math_variable": "#073642", "math_number": "#b58900", "math_operator": "#586e75",
+    "math_function": "#268bd2", "math_keyword": "#6c71c4", "math_string": "#859900", "math_result": "#2aa198",
+    "math_result_bg": "#2aa19814", "math_error": "#dc322f", "math_constraint": "#cb4b16", "math_symbolic": "#268bd2",
+    "text_body": "#073642", "heading": "#002b36", "table_header": "#eee8d5", "table_border": "#d6ceb5",
+    "table_highlight": "#b5890040", "plot_bg": "#fdf6e3", "plot_fg": "#073642", "plot_grid": "#e9e2cb"
+  },
+  "fonts": {"ui": "Segoe UI", "ui_size": 10, "math": "Cambria Math", "math_size": 17, "text": "Georgia", "text_size": 11, "mono": "Cascadia Mono", "mono_size": 11},
+  "plot_cycle": ["#268bd2", "#dc322f", "#859900", "#b58900", "#6c71c4", "#2aa198", "#cb4b16", "#d33682"],
+  "radius": 6
+}

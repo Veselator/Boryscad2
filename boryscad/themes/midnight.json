@@ -1,0 +1,18 @@
+{
+  "name": "Midnight",
+  "dark": true,
+  "colors": {
+    "window": "#0e1016", "sidebar": "#131620", "surface": "#191d29", "surface_alt": "#20253299",
+    "border": "#2a3040", "text": "#e6e9f0", "text_muted": "#8a93a8", "accent": "#8b7bff", "accent_text": "#ffffff",
+    "page": "#161a25", "page_grid": "#222838", "page_shadow": "#00000070", "desk": "#0b0d12",
+    "selection": "#8b7bff33", "hover": "#ffffff0c", "cursor": "#ff5c8a",
+    "math_text": "#e6e9f0", "math_variable": "#eef1f7", "math_number": "#ffc978", "math_operator": "#86d4ff",
+    "math_function": "#9bb8ff", "math_keyword": "#d09cff", "math_string": "#b8e986", "math_result": "#8ff0b4",
+    "math_result_bg": "#8ff0b412", "math_error": "#ff6b8b", "math_constraint": "#ffb86b", "math_symbolic": "#7fd8ff",
+    "text_body": "#d3d8e4", "heading": "#ffffff", "table_header": "#232a3a", "table_border": "#343c50",
+    "table_highlight": "#8b7bff44", "plot_bg": "#191d29", "plot_fg": "#cfd6e6", "plot_grid": "#2a3142"
+  },
+  "fonts": {"ui": "Segoe UI", "ui_size": 10, "math": "Cambria Math", "math_size": 17, "text": "Segoe UI", "text_size": 11, "mono": "Cascadia Mono", "mono_size": 11},
+  "plot_cycle": ["#8b7bff", "#ff7a59", "#2ed3b7", "#ffd166", "#6fcf6f", "#ff5c8a", "#5ab0ff", "#c792ea"],
+  "radius": 10
+}

@@ -1,0 +1,7 @@
+PySide6>=6.6
+lark>=1.1
+sympy>=1.12
+numpy>=1.26
+scipy>=1.11
+matplotlib>=3.8
+networkx>=3.2

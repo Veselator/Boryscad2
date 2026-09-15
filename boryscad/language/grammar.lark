@@ -1,0 +1,117 @@
+// Boryscad math language (LALR(1)).
+// A region is a block of statements separated by newlines or ';'.
+
+start: _sep? [stmt (_sep stmt)* _sep?]
+_sep: _SEP | _ROWSEP
+
+
+// The left-hand side of ':=' is a general expression; the transformer decides
+// whether it is a variable, a function definition, an indexed element or a
+// destructuring vector.  This keeps the grammar free of LALR conflicts.
+?stmt: expr ASSIGN expr                                  -> assign
+     | expr ASSIGN expr "," expr                          -> step_range_assign
+     | expr EQ                                            -> evaluate
+     | expr EQ expr                                       -> equation
+     | expr ARROW [symcmd (ARROW symcmd)*]                -> symbolic
+     | GIVEN                                              -> given
+     | expr                                               -> expr_stmt
+
+symcmd: NAME ["(" [args] ")"]
+
+// ---------------------------------------------------------------- programs
+program: "{" _sep? [pstmt (_sep pstmt)* _sep?] "}"
+
+?pstmt: expr LARROW expr                                 -> local_assign
+      | "for" NAME "in" expr program                     -> for_stmt
+      | "while" expr program                             -> while_stmt
+      | if_stmt
+      | "return" expr                                    -> return_stmt
+      | "break"                                          -> break_stmt
+      | "continue"                                       -> continue_stmt
+      | expr                                             -> pexpr
+
+if_stmt: "if" expr program ["else" (program | if_stmt)]
+
+// ------------------------------------------------------------- expressions
+?expr: or_expr
+
+?or_expr: and_expr
+        | or_expr OR and_expr                            -> binop
+
+?and_expr: not_expr
+         | and_expr AND not_expr                         -> binop
+
+?not_expr: comparison
+         | NOT not_expr                                  -> unop
+
+?comparison: range_expr
+           | range_expr (COMPOP range_expr)+             -> compare
+
+?range_expr: additive
+           | additive RANGE additive [STEP additive]     -> range
+
+?additive: term
+         | additive ADDOP term                           -> binop
+
+?term: unary
+     | term MULOP unary                                  -> binop
+
+?unary: power
+      | ADDOP unary                                      -> unop
+      | SQRT unary                                       -> sqrt_prefix
+
+?power: postfix
+      | postfix POWOP unary                              -> binop
+
+?postfix: atom
+        | postfix "!"                                    -> factorial
+        | postfix "[" args "]"                           -> index
+        | postfix "." NAME                               -> member
+
+?atom: NUMBER                                            -> number
+     | IMAG                                              -> imag
+     | NAME                                              -> var
+     | INF                                               -> inf
+     | STRING                                            -> string
+     | NAME "(" [args] ")"                               -> call
+     | "(" expr ")"                                      -> paren
+     | "[" [matrix_rows] "]"                             -> matrix
+     | "|" expr "|"                                      -> abs
+     | "if" "(" expr "," expr "," expr ")"               -> if_expr
+     | program
+
+matrix_rows: mrow (_ROWSEP mrow)*
+mrow: expr ("," expr)*
+
+args: arg ("," arg)*
+?arg: expr
+    | NAME "=" expr                                      -> kwarg
+
+// ------------------------------------------------------------------ tokens
+GIVEN.2: /given\b/i
+STEP.2: /step\b/
+ASSIGN: ":=" | "≔"
+LARROW.3: "<-" | "←"
+ARROW.3: "->" | "→"
+EQ: "="
+RANGE: ".."
+OR.2: /or\b/ | "∨"
+AND.2: /and\b/ | "∧"
+NOT.2: /not\b/ | "¬"
+COMPOP: "==" | "!=" | "<=" | ">=" | "<" | ">" | "≠" | "≤" | "≥"
+ADDOP: "+" | "-" | "−"
+MULOP: "*" | "/" | "·" | "×" | "÷" | ".*" | "./"
+POWOP: "^" | ".^" | "**"
+SQRT: "√"
+INF: "∞"
+
+NUMBER: /\d+(\.\d+)?([eE][+-]?\d+)?/
+IMAG: /\d+(\.\d+)?([eE][+-]?\d+)?[ij](?!\w)/
+NAME: /(?!\d)\w+/
+STRING: /"[^"\n]*"/
+_ROWSEP: /;([ \t]*(;|\r?\n|\/\/[^\n]*))*/
+
+_SEP: /\r?\n([ \t]*(;|\r?\n|\/\/[^\n]*))*/
+COMMENT: /\/\/[^\n]*/
+%ignore COMMENT
+%ignore /[ \t\f]+/

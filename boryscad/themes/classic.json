@@ -1,0 +1,18 @@
+{
+  "name": "Classic",
+  "dark": false,
+  "colors": {
+    "window": "#e9edf3", "sidebar": "#dfe5ee", "surface": "#f7f9fc", "surface_alt": "#e8edf4",
+    "border": "#b9c3d3", "text": "#10203a", "text_muted": "#5a6780", "accent": "#1f6fd1", "accent_text": "#ffffff",
+    "page": "#ffffff", "page_grid": "#dfe6f0", "page_shadow": "#10203a33", "desk": "#c9d2df",
+    "selection": "#1f6fd12e", "hover": "#10203a0d", "cursor": "#e0001b",
+    "math_text": "#000000", "math_variable": "#000000", "math_number": "#000000", "math_operator": "#000000",
+    "math_function": "#000000", "math_keyword": "#000080", "math_string": "#006400", "math_result": "#000000",
+    "math_result_bg": "#00000000", "math_error": "#e0001b", "math_constraint": "#000000", "math_symbolic": "#00008b",
+    "text_body": "#000000", "heading": "#000000", "table_header": "#e8eef8", "table_border": "#9aa8bd",
+    "table_highlight": "#fff3b0", "plot_bg": "#ffffff", "plot_fg": "#000000", "plot_grid": "#d9d9d9"
+  },
+  "fonts": {"ui": "Segoe UI", "ui_size": 10, "math": "Times New Roman", "math_size": 18, "text": "Times New Roman", "text_size": 13, "mono": "Consolas", "mono_size": 11},
+  "plot_cycle": ["#d40000", "#0000d4", "#008000", "#b000b0", "#d48800", "#008b8b", "#000000", "#7f7f00"],
+  "radius": 3
+}

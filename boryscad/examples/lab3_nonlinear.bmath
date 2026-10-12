@@ -1,10 +1,10 @@
-@title ЛР 3 — Задача нелінійного програмування
+@title ЛР 3 — Задача нелінійного програмування (варіант 21)
 # Лабораторна робота № 3. Задача нелінійного програмування
 > **Мета:** набути навичок розв’язування двовимірних задач нелінійного програмування.
-> Знайти мінімальне та максимальне значення функції за обмежень (N — номер у журналі, k — коефіцієнт групи).
+> **Варіант 21:** N = 21, k = 2. Знайти мінімальне та максимальне значення функції f(x₁, x₂) = x₁² − k·N·x₁ + x₂² за обмежень x₁² + x₂² ≤ N², x₂ = N·x₁, x₁ ≥ 0, x₂ ≥ 0.
 
 ## Вихідні дані
-N := 5
+N := 21
 k := 2
 
 f(x1, x2) := x1^2 - k*N*x1 + x2^2
@@ -33,16 +33,19 @@ f(Pmax[0], Pmax[1]) =
 φ(t) := t^2 - k*N*t + (N*t)^2
 φ(t) -> expand
 deriv(φ(t), t) -> solve(t)
+tmin := k*N / (2*(1 + N^2))
+tmin =
+φ(tmin) =
 tmax := N / sqrt(1 + N^2)
 tmax =
 φ(tmax) =
 
 ## Графічний метод
-@plot title="Лінії рівня f(x₁, x₂) та область допустимих розв’язків" xlabel="x₁" ylabel="x₂" x=-0.5..6 y=-0.5..6 equal=1 width=620 height=460
-contour(f(u, v), u, -1, 7, v, -1, 7, levels=14)
-region(u^2 + v^2 <= N^2 and u >= 0 and v >= 0, u, -1, 7, v, -1, 7, color="#57cc99", alpha=0.25, label="x₁² + x₂² ≤ N²")
-implicit(u^2 + v^2 == N^2, u, -1, 7, v, -1, 7, color="#2a9d8f", label="коло")
-fplot(N*u, u, 0, 1.2, color="#e76f51", width=2.5, label="x₂ = N·x₁")
+@plot title="Лінії рівня f(x₁, x₂) та область допустимих розв’язків" xlabel="x₁" ylabel="x₂" x=-1..24 y=-1..24 equal=1 width=620 height=520
+contour(f(u, v), u, -2, 26, v, -2, 26, levels=16)
+region(u^2 + v^2 <= N^2 and u >= 0 and v >= 0, u, -2, 26, v, -2, 26, color="#57cc99", alpha=0.25, label="x₁² + x₂² ≤ N²")
+implicit(u^2 + v^2 == N^2, u, -2, 26, v, -2, 26, color="#2a9d8f", label="коло")
+fplot(N*u, u, 0, 1.1, color="#e76f51", width=2.5, label="x₂ = N·x₁")
 scatter([Pmin[0]], [Pmin[1]], color="#1d4ed8", size=70, label="мінімум")
 scatter([Pmax[0]], [Pmax[1]], color="#e63946", size=70, label="максимум")
 @end
